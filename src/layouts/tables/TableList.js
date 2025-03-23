@@ -509,8 +509,47 @@ function TableList() {
                             <StatusChip status={user.tidStatus} />
                           </TableCell>
                           <TableCell>
-                            <MDBox display="flex" gap={2} alignItems="center">
-                              {/* Input field for TID verification */}
+                          <MDBox display="flex" gap={2} alignItems="center" width="100%">
+  {/* Input field for TID verification */}
+  <TextField
+    variant="outlined"
+    size="small"
+    value={verificationInputs[user.uid] || ""}
+    onChange={(e) => setVerificationInputs((prev) => ({
+      ...prev,
+      [user.uid]: e.target.value,
+    }))}
+    fullWidth
+    label="Verify TID"
+    sx={{ 
+      flex: 1,
+      minWidth: "300px",
+      "& .MuiInputBase-root": {
+        height: "40px"
+      }
+    }}
+  />
+  <MDButton
+                                variant="gradient"
+                                color="info"
+                                size="small"
+                                onClick={() => handleVerifyTID(user.uid, verificationInputs[user.uid])}
+                              >
+                                Verify
+                              </MDButton>
+                              <Select
+                                value={user.tidStatus}
+                                onChange={(e) => handleStatusChange(user.uid, e.target.value)}
+                                size="small"
+                                sx={{ minWidth: 120 }}
+                              >
+                                <MenuItem value="pending">Pending</MenuItem>
+                                <MenuItem value="approved">Approved</MenuItem>
+                                <MenuItem value="rejected">Rejected</MenuItem>
+                              </Select>
+</MDBox>
+                            {/* <MDBox display="flex" gap={2} alignItems="center">
+                              
                               <TextField
                                 variant="outlined"
                                 size="small"
@@ -541,7 +580,7 @@ function TableList() {
                                 <MenuItem value="approved">Approved</MenuItem>
                                 <MenuItem value="rejected">Rejected</MenuItem>
                               </Select>
-                            </MDBox>
+                            </MDBox> */}
                           </TableCell>
                         </TableRow>
                       ))}

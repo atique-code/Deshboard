@@ -48,6 +48,8 @@ import SignUp from "layouts/authentication/sign-up";
 // @mui icons
 import Icon from "@mui/material/Icon";
 import TableList from "layouts/tables/TableList";
+import WithdrawalList from "layouts/tables/Withdrawal";
+import AdminPaymentList from "layouts/tables/AdminPaymentList";
 
 const routes = [
   {
@@ -66,22 +68,22 @@ const routes = [
     route: "/tables",
     component: <TableList />,
   },
-  // {
-  //   type: "collapse",
-  //   name: "Billing",
-  //   key: "billing",
-  //   icon: <Icon fontSize="small">receipt_long</Icon>,
-  //   route: "/billing",
-  //   component: <Billing />,
-  // },
-  // {
-  //   type: "collapse",
-  //   name: "RTL",
-  //   key: "rtl",
-  //   icon: <Icon fontSize="small">format_textdirection_r_to_l</Icon>,
-  //   route: "/rtl",
-  //   component: <RTL />,
-  // },
+  {
+    type: "collapse",
+    name: "WithDraw",
+    key: "billing",
+    icon: <Icon fontSize="small">receipt_long</Icon>,
+    route: "/withdrawalApproval",
+    component: <WithdrawalList />,
+  },
+  {
+    type: "collapse",
+    name: "Payment List",
+    key: "rtl",
+    icon: <Icon fontSize="small">format_textdirection_r_to_l</Icon>,
+    route: "/paymentImage",
+    component: <AdminPaymentList />,
+  },
   // {
   //   type: "collapse",
   //   name: "Notifications",

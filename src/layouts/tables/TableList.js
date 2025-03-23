@@ -285,7 +285,7 @@ import DashboardNavbar from "examples/Navbars/DashboardNavbar";
 import Footer from "examples/Footer";
 
 // Firebase
-import { ref, onValue, update } from "firebase/database";
+import { ref, onValue, update, get, increment } from "firebase/database";
 import { database } from "../../../src/firebaseConfig";
 
 function TableList() {
@@ -339,15 +339,68 @@ function TableList() {
     }
   };
 
+  // const handleStatusChange = async (uid, newStatus) => {
+  //   try {
+  //     const userRef = ref(database, `users/${uid}/tid`);
+  //     await update(userRef, { status: newStatus });
+  //   } catch (err) {
+  //     setError("Status update failed");
+  //   }
+  // };
+
   const handleStatusChange = async (uid, newStatus) => {
     try {
-      const userRef = ref(database, `users/${uid}/tid`);
-      await update(userRef, { status: newStatus });
+      const db = database;
+      const userRef = ref(db, `users/${uid}`);
+      
+      if (newStatus === 'approved') {
+        const investmentsRef = ref(db, `users/${uid}/investments`);
+        const snapshot = await get(investmentsRef);
+        
+        const updates = {};
+        let totalBonus = 0;
+  
+        if (snapshot.exists()) {
+          const investments = snapshot.val();
+          
+          // Process all pending investments
+          Object.entries(investments).forEach(([key, investment]) => {
+            if (investment.status === 'pending') {
+              const bonus = investment.amount * 0.1;
+              totalBonus += bonus;
+              
+              // Mark as approved with timestamps
+              updates[`users/${uid}/investments/${key}/status`] = 'approved';
+              updates[`users/${uid}/investments/${key}/approvedAt`] = Date.now();
+              updates[`users/${uid}/investments/${key}/lastPayout`] = Date.now();
+              
+              // Add product type and income details
+              const product = carProducts.find(p => p.id === investment.id);
+              updates[`users/${uid}/investments/${key}/type`] = product.type;
+              updates[`users/${uid}/investments/${key}/dailyIncome`] = product.dailyIncome;
+            }
+          });
+        }
+  
+        // Update balance and TID status
+        updates[`users/${uid}/balance`] = increment(totalBonus);
+        updates[`users/${uid}/tid/status`] = newStatus;
+  
+        // Referral bonus
+        const userSnapshot = await get(userRef);
+        const userData = userSnapshot.val();
+        if (userData.referredBy) {
+          updates[`users/${userData.referredBy}/balance`] = increment(totalBonus);
+        }
+  
+        await update(ref(db), updates);
+      } else {
+        await update(userRef, {'tid/status': newStatus});
+      }
     } catch (err) {
-      setError("Status update failed");
+      setError("Status update failed: " + err.message);
     }
   };
-
   const VerificationStatus = ({ verified }) => (
     verified ? (
       <MDBox display="flex" alignItems="center" gap={1}>

@@ -50,6 +50,7 @@ import Icon from "@mui/material/Icon";
 import TableList from "layouts/tables/TableList";
 import WithdrawalList from "layouts/tables/Withdrawal";
 import AdminPaymentList from "layouts/tables/AdminPaymentList";
+import AdminDepositForm from "layouts/tables/AdminDepositeForm";
 
 const routes = [
   {
@@ -84,14 +85,14 @@ const routes = [
     route: "/paymentImage",
     component: <AdminPaymentList />,
   },
-  // {
-  //   type: "collapse",
-  //   name: "Notifications",
-  //   key: "notifications",
-  //   icon: <Icon fontSize="small">notifications</Icon>,
-  //   route: "/notifications",
-  //   component: <Notifications />,
-  // },
+  {
+    type: "collapse",
+    name: "Desposite",
+    key: "notifications",
+    icon: <Icon fontSize="small">notifications</Icon>,
+    route: "/deposite",
+    component: <AdminDepositForm />,
+  },
   // {
   //   type: "collapse",
   //   name: "Profile",

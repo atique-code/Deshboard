@@ -1001,73 +1001,32 @@ function TableList() {
     );
   };
 
-  const handleSpecificStatusChange = async (uid, tidKey, newStatus) => {
-    try {
-      const updates = {
-        [`users/${uid}/tids/${tidKey}/status`]: newStatus,
-        [`users/${uid}/tids/${tidKey}/statusUpdatedAt`]: Date.now()
-      };
-
-      if (newStatus === 'approved') {
-        let totalBonus = 0;
-        const userRef = ref(database, `users/${uid}`);
-        
-        // Process investments
-        const investmentsRef = ref(database, `users/${uid}/investments`);
-        const snapshot = await get(investmentsRef);
-
-        if (snapshot.exists()) {
-          const investments = snapshot.val();
-
-          Object.entries(investments).forEach(([investmentKey, investment]) => {
-            if (investment.status === 'pending') {
-              const product = carProducts.find(p => p.id === investment.id);
-              if (!product) return;
-
-              // Calculate 10% instant bonus
-              const bonus = investment.amount * 0.1;
-              totalBonus += bonus;
-
-              // Update investment status and details
-              updates[`users/${uid}/investments/${investmentKey}/status`] = 'approved';
-              updates[`users/${uid}/investments/${investmentKey}/approvedAt`] = Date.now();
-              updates[`users/${uid}/investments/${investmentKey}/lastPayout`] = Date.now();
-              updates[`users/${uid}/investments/${investmentKey}/type`] = product.type;
-              updates[`users/${uid}/investments/${investmentKey}/dailyIncome`] = product.dailyIncome;
-            }
-          });
-        }
-
-        // Update user balance
-        updates[`users/${uid}/balance`] = increment(totalBonus);
-
-        // Handle referral bonus
-        const userSnapshot = await get(userRef);
-        const userData = userSnapshot.val();
-        
-        if (userData.referredBy) {
-          updates[`users/${userData.referredBy}/balance`] = increment(totalBonus);
-          updates[`users/${userData.referredBy}/pendingBonus`] = increment(totalBonus);
-        }
-      }
-
-      await update(ref(database), updates);
-    } catch (err) {
-      setError("Status update failed: " + err.message);
-    }
-  };
-
   const handleVerifySpecificTID = async (uid, tidKey, adminTID) => {
     try {
-      const user = users.find(u => u.uid === uid);
-      const tidEntry = user.tids.find(t => t.key === tidKey);
-      
-      const updates = {
-        [`users/${uid}/tids/${tidKey}/verified`]: adminTID === tidEntry.tid,
-        [`users/${uid}/tids/${tidKey}/adminTID`]: adminTID,
-        [`users/${uid}/tids/${tidKey}/lastVerified`]: Date.now()
-      };
-
+      const userRef = ref(database, `users/${uid}`);
+      const userSnapshot = await get(userRef);
+      const userData = userSnapshot.val();
+  
+      if (!userData.tids?.[tidKey]) {
+        throw new Error("TID not found");
+      }
+  
+      const isVerified = adminTID === userData.tids[tidKey].tid;
+      const updates = {};
+  
+      // TID verification update
+      updates[`users/${uid}/tids/${tidKey}/verified`] = isVerified;
+      updates[`users/${uid}/tids/${tidKey}/adminTID`] = adminTID;
+  
+      // Update linked investments
+      if (userData.investments) {
+        Object.entries(userData.investments).forEach(([investmentKey, investment]) => {
+          if (investment.tidKey === tidKey) {
+            updates[`users/${uid}/investments/${investmentKey}/tidVerified`] = isVerified;
+          }
+        });
+      }
+  
       await update(ref(database), updates);
       setVerificationInputs(prev => ({
         ...prev,
@@ -1077,6 +1036,133 @@ function TableList() {
       setError("Verification failed: " + err.message);
     }
   };
+  
+  const handleSpecificStatusChange = async (uid, tidKey, newStatus) => {
+    try {
+      const userRef = ref(database, `users/${uid}`);
+      const userSnapshot = await get(userRef);
+      const userData = userSnapshot.val();
+  
+      if (!userData.tids?.[tidKey]) {
+        throw new Error("TID not found");
+      }
+  
+      const updates = {
+        [`users/${uid}/tids/${tidKey}/status`]: newStatus,
+        [`users/${uid}/tids/${tidKey}/statusUpdatedAt`]: Date.now()
+      };
+  
+      if (newStatus === 'approved' && userData.tids[tidKey].verified) {
+        let totalBonus = 0;
+        
+        // Process linked investments
+        if (userData.investments) {
+          Object.entries(userData.investments).forEach(([investmentKey, investment]) => {
+            if (investment.tidKey === tidKey && investment.status === 'pending') {
+              const product = carProducts.find(p => p.id === investment.id);
+              if (!product) return;
+  
+              const bonus = investment.amount * 0.1;
+              totalBonus += bonus;
+  
+              updates[`users/${uid}/investments/${investmentKey}/status`] = 'approved';
+              updates[`users/${uid}/investments/${investmentKey}/approvedAt`] = Date.now();
+            }
+          });
+        }
+  
+        // Update balances
+        updates[`users/${uid}/balance`] = increment(totalBonus);
+  
+        // Referral logic
+        if (userData.referredBy) {
+          updates[`users/${userData.referredBy}/balance`] = increment(totalBonus);
+          updates[`users/${userData.referredBy}/pendingBonus`] = increment(totalBonus);
+        }
+      }
+  
+      await update(ref(database), updates);
+    } catch (err) {
+      setError("Status update failed: " + err.message);
+    }
+  };
+
+  // const handleSpecificStatusChange = async (uid, tidKey, newStatus) => {
+  //   try {
+  //     const updates = {
+  //       [`users/${uid}/tids/${tidKey}/status`]: newStatus,
+  //       [`users/${uid}/tids/${tidKey}/statusUpdatedAt`]: Date.now()
+  //     };
+
+  //     if (newStatus === 'approved') {
+  //       let totalBonus = 0;
+  //       const userRef = ref(database, `users/${uid}`);
+        
+  //       // Process investments
+  //       const investmentsRef = ref(database, `users/${uid}/investments`);
+  //       const snapshot = await get(investmentsRef);
+
+  //       if (snapshot.exists()) {
+  //         const investments = snapshot.val();
+
+  //         Object.entries(investments).forEach(([investmentKey, investment]) => {
+  //           if (investment.status === 'pending') {
+  //             const product = carProducts.find(p => p.id === investment.id);
+  //             if (!product) return;
+
+  //             // Calculate 10% instant bonus
+  //             const bonus = investment.amount * 0.1;
+  //             totalBonus += bonus;
+
+  //             // Update investment status and details
+  //             updates[`users/${uid}/investments/${investmentKey}/status`] = 'approved';
+  //             updates[`users/${uid}/investments/${investmentKey}/approvedAt`] = Date.now();
+  //             updates[`users/${uid}/investments/${investmentKey}/lastPayout`] = Date.now();
+  //             updates[`users/${uid}/investments/${investmentKey}/type`] = product.type;
+  //             updates[`users/${uid}/investments/${investmentKey}/dailyIncome`] = product.dailyIncome;
+  //           }
+  //         });
+  //       }
+
+  //       // Update user balance
+  //       updates[`users/${uid}/balance`] = increment(totalBonus);
+
+  //       // Handle referral bonus
+  //       const userSnapshot = await get(userRef);
+  //       const userData = userSnapshot.val();
+        
+  //       if (userData.referredBy) {
+  //         updates[`users/${userData.referredBy}/balance`] = increment(totalBonus);
+  //         updates[`users/${userData.referredBy}/pendingBonus`] = increment(totalBonus);
+  //       }
+  //     }
+
+  //     await update(ref(database), updates);
+  //   } catch (err) {
+  //     setError("Status update failed: " + err.message);
+  //   }
+  // };
+
+  // const handleVerifySpecificTID = async (uid, tidKey, adminTID) => {
+  //   try {
+  //     const user = users.find(u => u.uid === uid);
+  //     const tidEntry = user.tids.find(t => t.key === tidKey);
+      
+  //     const updates = {
+  //       [`users/${uid}/tids/${tidKey}/verified`]: adminTID === tidEntry.tid,
+  //       [`users/${uid}/tids/${tidKey}/adminTID`]: adminTID,
+  //       [`users/${uid}/tids/${tidKey}/lastVerified`]: Date.now()
+  //     };
+
+  //     await update(ref(database), updates);
+  //     setVerificationInputs(prev => ({
+  //       ...prev,
+  //       [`${uid}-${tidKey}`]: ""
+  //     }));
+  //   } catch (err) {
+  //     setError("Verification failed: " + err.message);
+  //   }
+  // };
   // const handleStatusChange = async (uid, newStatus) => {
   //   try {
   //     const user = users.find(u => u.uid === uid);

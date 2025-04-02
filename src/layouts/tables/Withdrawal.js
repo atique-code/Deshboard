@@ -36,6 +36,7 @@ function WithdrawalList() {
               payeeName: item.payeeName || "N/A",
               bankAccount: item.bankAccount || "N/A",
               bankName: item.bankName || "N/A",
+              withdrawalAmount: item.withdrawalAmount || "0",
             });
           });
         }
@@ -71,6 +72,7 @@ function WithdrawalList() {
                       <TableCell>Payee Name</TableCell>
                       <TableCell>Bank Account</TableCell>
                       <TableCell>Bank Name</TableCell>
+                      <TableCell>Withdrawal Amount</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -80,6 +82,7 @@ function WithdrawalList() {
                         <TableCell>{item.payeeName}</TableCell>
                         <TableCell>{item.bankAccount}</TableCell>
                         <TableCell>{item.bankName}</TableCell>
+                        <TableCell>{item.withdrawalAmount}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
